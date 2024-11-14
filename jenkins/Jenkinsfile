@@ -1,14 +1,8 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18-alpine' 
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
     
-    environment {
-        DOCKER_IMAGE = 'my-react-app'
-        DOCKER_TAG = 'latest'
+    tools {
+        nodejs 'Node18'  // This name should match your Jenkins NodeJS installation name
     }
     
     stages {
@@ -24,6 +18,12 @@ pipeline {
             }
         }
         
+        stage('Run Linting') {
+            steps {
+                sh 'npm run lint || true'  // Add this if you have linting configured
+            }
+        }
+        
         stage('Run Tests') {
             steps {
                 sh 'npm test -- --watchAll=false'
@@ -36,22 +36,34 @@ pipeline {
             }
         }
         
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                }
-            }
-        }
-        
         stage('Deploy') {
             steps {
-                script {
-                    sh "docker stop ${DOCKER_IMAGE} || true"
-                    sh "docker rm ${DOCKER_IMAGE} || true"
-                    sh "docker run -d -p 3000:80 --name ${DOCKER_IMAGE} ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                }
+                // Example deployment to a directory
+                sh '''
+                    # Create deployment directory if it doesn't exist
+                    sudo mkdir -p /var/www/react-app
+                    
+                    # Copy build files
+                    sudo cp -r build/* /var/www/react-app/
+                    
+                    # Set proper permissions
+                    sudo chown -R jenkins:jenkins /var/www/react-app
+                    sudo chmod -R 755 /var/www/react-app
+                '''
             }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Build and deployment successful!'
+        }
+        failure {
+            echo 'Build or deployment failed!'
+        }
+        always {
+            // Clean workspace after build
+            cleanWs()
         }
     }
 }
