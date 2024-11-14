@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     tools {
-        nodejs 'NodeJs'  // This name should match your Jenkins NodeJS installation name
+        nodejs 'NodeJs'  // Make sure this matches your Jenkins NodeJS installation name
     }
     
     stages {
@@ -20,7 +20,7 @@ pipeline {
         
         stage('Run Linting') {
             steps {
-                sh 'npm run lint || true'  // Add this if you have linting configured
+                sh 'npm run lint || true'
             }
         }
         
@@ -38,17 +38,10 @@ pipeline {
         
         stage('Deploy') {
             steps {
-                // Example deployment to a directory
+                // Deploy without using sudo
                 sh '''
-                    # Create deployment directory if it doesn't exist
-                    sudo mkdir -p /var/www/react-app
-                    
-                    # Copy build files
-                    sudo cp -r build/* /var/www/react-app/
-                    
-                    # Set proper permissions
-                    sudo chown -R jenkins:jenkins /var/www/react-app
-                    sudo chmod -R 755 /var/www/react-app
+                    mkdir -p /var/jenkins_home/deployed-apps/react-app
+                    cp -r build/* /var/jenkins_home/deployed-apps/react-app/
                 '''
             }
         }
@@ -62,7 +55,6 @@ pipeline {
             echo 'Build or deployment failed!'
         }
         always {
-            // Clean workspace after build
             cleanWs()
         }
     }
